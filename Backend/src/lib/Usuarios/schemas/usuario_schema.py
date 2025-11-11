@@ -103,6 +103,7 @@ class UsuarioSearchByName(BaseModel):
 
 
 class UsuarioResponse(BaseModel):
+    Id:UUID
     Nombre:str
     Apellido_Paterno:str
     Apellido_Materno:str
