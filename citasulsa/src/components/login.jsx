@@ -29,7 +29,34 @@ export default function Login() {
       navigate("/bienvda");
     } catch (err) {
       console.error("Error en login:", err);
-      setError(err.message || "Error al iniciar sesión. Verifica tus credenciales.");
+      
+      // Mensajes de error personalizados
+      let errorMessage = "Error al iniciar sesión. Por favor, intenta de nuevo.";
+      
+      if (err.message) {
+        const msg = err.message.toLowerCase();
+        
+        if (msg.includes("usuario no encontrado") || msg.includes("no encontrado")) {
+          errorMessage = "❌ Usuario no encontrado. Verifica tu correo electrónico.";
+        } else if (msg.includes("contraseña incorrecta") || msg.includes("password")) {
+          errorMessage = "❌ Contraseña incorrecta. Por favor, inténtalo de nuevo.";
+        } else if (msg.includes("correo electrónico o contraseña incorrectos")) {
+          errorMessage = "❌ Correo electrónico o contraseña incorrectos.";
+        } else if (msg.includes("sesión ha expirado")) {
+          errorMessage = "⚠️ Tu sesión ha expirado. Por favor, inicia sesión nuevamente.";
+        } else if (msg.includes("no estás autenticado")) {
+          errorMessage = "⚠️ Debes iniciar sesión para continuar.";
+        } else if (msg.includes("error interno") || msg.includes("500")) {
+          errorMessage = "⚠️ Error del servidor. Por favor, intenta más tarde.";
+        } else if (msg.includes("red") || msg.includes("network") || msg.includes("fetch")) {
+          errorMessage = "⚠️ Error de conexión. Verifica tu conexión a internet.";
+        } else {
+          // Si hay un mensaje específico del servidor, mostrarlo
+          errorMessage = `❌ ${err.message}`;
+        }
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -91,8 +118,11 @@ export default function Login() {
 
             {/* Mensaje de error */}
             {error && (
-              <div className="mb-4 text-red-300 text-sm text-center">
-                {error}
+              <div className="mb-4 bg-red-500/20 border border-red-400 text-red-100 px-4 py-3 rounded-md text-sm">
+                <div className="flex items-start">
+                  <span className="mr-2">⚠️</span>
+                  <span>{error}</span>
+                </div>
               </div>
             )}
 

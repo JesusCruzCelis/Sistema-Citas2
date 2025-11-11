@@ -477,8 +477,12 @@ class UsuarioServicios:
             
                 return usuario
             
+            except ValueError:
+                # Re-lanzar ValueError para mantener el mensaje específico
+                raise
             except Exception as e:
-                raise ValueError(f"Error al buscar usuario: {str(e)}")
+                # Para otros errores, usar un mensaje genérico
+                raise ValueError("Error al buscar usuario en la base de datos")
 
         
 

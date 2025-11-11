@@ -2,11 +2,12 @@
 const API_BASE_URL = 'http://localhost:8000';
 
 // Helper para manejar respuestas
-const handleResponse = async (response) => {
+const handleResponse = async (response, isLoginRequest = false) => {
   if (!response.ok) {
     // Manejo especial para errores de autenticación
-    if (response.status === 401) {
-      // Limpiar todos los datos del localStorage
+    if (response.status === 401 && !isLoginRequest) {
+      // Solo limpiar y redirigir si NO es una petición de login
+      // (es decir, es un token expirado en una ruta protegida)
       localStorage.removeItem('token');
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
@@ -92,7 +93,7 @@ export const authAPI = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
     });
-    const data = await handleResponse(response);
+    const data = await handleResponse(response, true); // Indicar que es una petición de login
     
     // Guardar tokens y datos de usuario en localStorage
     localStorage.setItem('token', data.access_token); // ← Guardamos con el nombre 'token' para los componentes

@@ -16,7 +16,7 @@ async def login(credentials: LoginRequest):
         if not verify_password(credentials.password, usuario.Password):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="contraseña Incorrecta"
+                detail="Contraseña incorrecta. Por favor, verifica tus credenciales."
             )
         
         # Crear nombre completo
@@ -53,12 +53,22 @@ async def login(credentials: LoginRequest):
         }
         
     except ValueError as e:
+        error_msg = str(e)
+        # Personalizar mensaje según el tipo de error
+        if "Usuario no encontrado" in error_msg or "no encontrado" in error_msg.lower():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, 
+                detail="Usuario no encontrado. Verifica que el correo electrónico sea correcto."
+            )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, 
-            detail=str(e)
+            detail="Correo electrónico o contraseña incorrectos."
         )
+    except HTTPException:
+        # Re-lanzar excepciones HTTP ya manejadas
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error interno del servidor"
+            detail="Error interno del servidor. Por favor, intenta más tarde."
         )

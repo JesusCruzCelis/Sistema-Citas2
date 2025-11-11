@@ -101,7 +101,7 @@ async def update_user(id: UUID, usuario_data: UsuarioRequestUpdate, current_user
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
-@usuarios_routes.delete('/usuarios/delete', status_code=status.HTTP_200_OK)
+@usuarios_routes.delete('/usuarios/delete/{id}', status_code=status.HTTP_200_OK)
 async def delete_user(id: UUID, current_user: dict = Depends(require_root)):
     service = UsuarioServicios()
     try:
