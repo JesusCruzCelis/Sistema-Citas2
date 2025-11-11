@@ -1,5 +1,6 @@
 // Configuración base de la API
-const API_BASE_URL = 'http://localhost:8000';
+// Usar proxy de Vite para evitar problemas de CORS
+const API_BASE_URL = '/api';
 
 // Helper para manejar respuestas
 const handleResponse = async (response, isLoginRequest = false) => {
@@ -170,12 +171,20 @@ export const usuariosAPI = {
 
   // Actualizar usuario
   update: async (id, userData) => {
-    const response = await fetch(`${API_BASE_URL}/universidad/usuarios/modify/${id}`, {
-      method: 'PATCH',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(userData)
-    });
-    return handleResponse(response);
+    try {
+      const response = await fetch(`${API_BASE_URL}/universidad/usuarios/modify/${id}`, {
+        method: 'PATCH',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(userData)
+      });
+      return handleResponse(response);
+    } catch (error) {
+      // Errores de red o CORS
+      if (error instanceof TypeError && error.message === 'Failed to fetch') {
+        throw new Error('No se pudo conectar con el servidor. Verifica que el backend esté corriendo y que no haya problemas de CORS.');
+      }
+      throw error;
+    }
   },
 
   // Eliminar usuario

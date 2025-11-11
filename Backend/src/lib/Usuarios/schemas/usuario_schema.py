@@ -62,19 +62,45 @@ class UsuarioRequestUpdate(BaseModel):
     Password:Optional[str] = Field(None,min_length=8,max_length=100)
     Email:Optional[EmailStr] = Field(None)
     Rol:Optional[str] = Field(None,max_length=30)
-    Rol_Escuela:str = Field(None,max_digits=30)
-    Area:str = Field(...,max_length=50)
+    Rol_Escuela:Optional[str] = Field(None,max_length=30)  # Cambiado: max_digits -> max_length, str -> Optional[str]
+    Area:Optional[str] = Field(None,max_length=50)  # Cambiado: ... -> None para hacerlo opcional
 
 
-    @field_validator('Nombre','Rol','Apellido_Paterno','Apellido_Materno','Rol_Escuela')
+    @field_validator('Nombre','Apellido_Paterno','Apellido_Materno')
     @classmethod
-    def validar_atributos(cls,value:str):
+    def validar_nombres(cls,value:str):
+        if value is None:
+            return value
+        # Permitir letras y espacios para nombres compuestos
+        if not all(c.isalpha() or c.isspace() for c in value):
+            raise ValueError("Solo puede contener letras y espacios")
+        if "  " in value:
+            raise ValueError("No puede tener espacios múltiples consecutivos")
+        if value != value.strip():
+            raise ValueError("No puede tener espacios al inicio o final")
+        return value.strip()
+    
+    @field_validator('Rol')
+    @classmethod
+    def validar_rol(cls,value:str):
+        if value is None:
+            return value
+        if " " in value:
+            raise ValueError("No puede tener espacios en blanco")
+        # Permitir letras y guiones bajos para roles como admin_sistema
+        if not all(c.isalpha() or c == '_' for c in value):
+            raise ValueError("Solo puede contener letras y guiones bajos")
+        return value
+    
+    @field_validator('Rol_Escuela')
+    @classmethod
+    def validar_rol_escuela(cls,value:str):
         if value is None:
             return value
         if " " in value:
             raise ValueError("No puede tener espacios en blanco")
         if not value.isalpha():
-            raise ValueError("Solo deben contener letras")
+            raise ValueError("Solo debe contener letras")
         return value
 
     @field_validator('Password')
