@@ -42,10 +42,11 @@ export default function Consultar() {
         nombre: `${cita.visitante?.Nombre || ''} ${cita.visitante?.Apellido_Paterno || ''} ${cita.visitante?.Apellido_Materno || ''}`.trim(),
         fechaCita: cita.Fecha,
         horaCita: cita.Hora,
-        area: cita.Area || 'N/A',  // Ahora el área está directamente en la cita
+        area: cita.Area || 'N/A',
+        personaVisitada: cita.Nombre_Persona_Visitada || null,  // Campo de texto libre
         medio: cita.visitante?.Ingreso || 'N/A',
         visitante: cita.visitante,
-        usuario: cita.usuario_visitado  // Corregido: es usuario_visitado
+        usuario: cita.usuario_visitado
       }));
       
       setVisitantes(citasFormateadas);
@@ -236,6 +237,7 @@ export default function Consultar() {
               <th className="p-3">Nombre visitante</th>
               <th className="p-3">Fecha de cita</th>
               <th className="p-3">Hora</th>
+              <th className="p-3">Persona a visitar</th>
               <th className="p-3">Área visitada</th>
               <th className="p-3">Medio de ingreso</th>
               {userRole !== "vigilancia" && (
@@ -246,7 +248,7 @@ export default function Consultar() {
           <tbody>
             {visitantesFiltrados.length === 0 ? (
               <tr>
-                <td colSpan={userRole !== "vigilancia" ? "6" : "5"} className="text-center p-4 text-gray-500">
+                <td colSpan={userRole !== "vigilancia" ? "7" : "6"} className="text-center p-4 text-gray-500">
                   No hay registros en este mes
                 </td>
               </tr>
@@ -256,6 +258,13 @@ export default function Consultar() {
                   <td className="p-3">{v.nombre}</td>
                   <td className="p-3">{v.fechaCita}</td>
                   <td className="p-3">{v.horaCita}</td>
+                  <td className="p-3">
+                    {v.personaVisitada ? (
+                      <span className="text-blue-700 font-medium">{v.personaVisitada}</span>
+                    ) : (
+                      <span className="text-gray-500 italic">Sin persona específica</span>
+                    )}
+                  </td>
                   <td className="p-3">{v.area}</td>
                   <td className="p-3">{v.medio}</td>
                   {userRole !== "vigilancia" && (

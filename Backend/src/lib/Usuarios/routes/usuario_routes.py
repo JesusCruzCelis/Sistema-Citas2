@@ -160,9 +160,7 @@ async def create_cita(cita_data: CitasRequestCreate, current_user: dict = Depend
     service = UsuarioServicios()
     try:
         await service.create_cita(
-            nombre_usuario=cita_data.Nombre_Usuario,
-            apellido_paterno_usuario=cita_data.Apellido_Paterno_Usuario,
-            apellido_materno_usuario=cita_data.Apellido_Materno_Usuario,
+            nombre_persona_visitada=cita_data.Nombre_Persona_Visitada,
             nombre_visitante=cita_data.Nombre_Visitante,
             apellido_paterno_visitante=cita_data.Apellido_Paterno_Visitante,
             apellido_materno_visitante=cita_data.Apellido_Materno_Visitante,

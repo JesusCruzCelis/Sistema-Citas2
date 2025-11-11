@@ -13,9 +13,7 @@ export default function Agregar({ visitantes, setVisitantes }) {
     celular: "",
     fechaCita: "",
     horaCita: "",
-    personaNombre: "",
-    personaApellidoPaterno: "",
-    personaApellidoMaterno: "",
+    personaVisitar: "",  // Un solo campo de texto libre
     area: "",
     medio: "A pie",
     marca: "",
@@ -48,7 +46,7 @@ export default function Agregar({ visitantes, setVisitantes }) {
     }
     
     // Para nombres: solo letras y espacios
-    if (['nombre', 'apellidoPaterno', 'apellidoMaterno', 'personaNombre', 'personaApellidoPaterno', 'personaApellidoMaterno'].includes(name)) {
+    if (['nombre', 'apellidoPaterno', 'apellidoMaterno', 'personaVisitar'].includes(name)) {
       processedValue = value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]/g, '');
     }
     
@@ -63,11 +61,6 @@ export default function Agregar({ visitantes, setVisitantes }) {
       alert(
         "⚠️ Por favor completa los campos obligatorios:\n• Nombre del visitante\n• Apellido paterno del visitante\n• Fecha de cita\n• Hora de cita"
       );
-      return;
-    }
-
-    if (!formData.personaNombre || !formData.personaApellidoPaterno) {
-      alert("⚠️ Por favor completa el nombre del personal a quien se visita (debe estar registrado en el sistema)");
       return;
     }
 
@@ -151,15 +144,13 @@ export default function Agregar({ visitantes, setVisitantes }) {
       }
 
       // 3. Crear la cita
-      // Nota: El personal visitado debe existir previamente en la tabla usuarios
+      // Nota: El personal visitado es OPCIONAL y no necesita estar registrado en el sistema
       const citaData = {
-        Nombre_Usuario: formData.personaNombre,
-        Apellido_Paterno_Usuario: formData.personaApellidoPaterno,
-        Apellido_Materno_Usuario: formData.personaApellidoMaterno || "",
+        Nombre_Persona_Visitada: formData.personaVisitar?.trim() || null,
         Nombre_Visitante: formData.nombre,
         Apellido_Paterno_Visitante: formData.apellidoPaterno,
         Apellido_Materno_Visitante: formData.apellidoMaterno || "",
-        Placas: (formData.medio === "En vehículo" && formData.placas) ? formData.placas : "",
+        Placas: (formData.medio === "En vehículo" && formData.placas) ? formData.placas : null,
         Fecha: formData.fechaCita,
         Hora: formData.horaCita,
         Area: formData.area
@@ -188,9 +179,8 @@ export default function Agregar({ visitantes, setVisitantes }) {
         celular: "",
         fechaCita: "",
         horaCita: "",
-        personaNombre: "",
-        personaApellidoPaterno: "",
-        personaApellidoMaterno: "",
+        personaVisitar: "",
+        area: "",
         medio: "A pie",
         marca: "",
         modelo: "",
@@ -206,8 +196,7 @@ export default function Agregar({ visitantes, setVisitantes }) {
       // Error de personal del sistema no encontrado
       if (errorMessage.includes("Personal del sistema no encontrado") || 
           errorMessage.includes("Usuario no encontrado")) {
-        errorMessage = `⚠️ El personal "${formData.personaNombre} ${formData.personaApellidoPaterno}" no está registrado en el sistema.\n\n` +
-          `Por favor, solicita al administrador que registre a esta persona primero en "Administrar Usuarios".`;
+        errorMessage = `⚠️ Error al procesar la información de la persona a visitar. Por favor intenta de nuevo.`;
       }
       // Error de visitante no encontrado
       else if (errorMessage.includes("Visitante no encontrado")) {
@@ -390,37 +379,17 @@ export default function Agregar({ visitantes, setVisitantes }) {
 
             <div className="col-span-2 bg-blue-50 p-4 rounded-md border border-blue-200">
               <p className="text-sm text-blue-800 font-medium mb-2">
-                Personal del sistema a visitar <span className="text-red-500">*</span>
+                Persona a visitar (Opcional)
               </p>
               <p className="text-xs text-blue-600 mb-3">
-                Ingrese el nombre del empleado/profesor que ya está registrado en el sistema y el área a la que se dirige el visitante.
+                Ingresa el nombre completo de la persona a visitar. NO necesita estar registrada en el sistema. Si solo deseas visitar un área, deja este campo vacío.
               </p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 gap-3">
                 <input
                   type="text"
-                  name="personaNombre"
-                  placeholder="Nombre del personal *"
-                  value={formData.personaNombre}
-                  onChange={handleChange}
-                  className="border rounded-md px-3 py-2 w-full focus:ring-[#1a237e] focus:border-[#1a237e]"
-                  required
-                />
-
-                <input
-                  type="text"
-                  name="personaApellidoPaterno"
-                  placeholder="Apellido Paterno *"
-                  value={formData.personaApellidoPaterno}
-                  onChange={handleChange}
-                  className="border rounded-md px-3 py-2 w-full focus:ring-[#1a237e] focus:border-[#1a237e]"
-                  required
-                />
-
-                <input
-                  type="text"
-                  name="personaApellidoMaterno"
-                  placeholder="Apellido Materno"
-                  value={formData.personaApellidoMaterno}
+                  name="personaVisitar"
+                  placeholder="Nombre completo de la persona a visitar (ej: María González Ruiz)"
+                  value={formData.personaVisitar}
                   onChange={handleChange}
                   className="border rounded-md px-3 py-2 w-full focus:ring-[#1a237e] focus:border-[#1a237e]"
                 />
@@ -435,6 +404,7 @@ export default function Agregar({ visitantes, setVisitantes }) {
                   className="border rounded-md px-3 py-2 w-full focus:ring-[#1a237e] focus:border-[#1a237e]"
                   required
                 />
+                <p className="text-xs text-gray-500 mt-1">El área es obligatoria y representa el destino principal de la visita</p>
               </div>
             </div>
           </div>

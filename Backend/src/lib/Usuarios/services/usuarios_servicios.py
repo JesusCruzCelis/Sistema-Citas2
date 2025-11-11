@@ -121,23 +121,17 @@ class UsuarioServicios:
 
 
 
-    async def create_cita(self, nombre_usuario:str, apellido_paterno_usuario:str, apellido_materno_usuario:str,
+    async def create_cita(self, nombre_persona_visitada:str,
                       nombre_visitante:str, apellido_paterno_visitante:str, apellido_materno_visitante:str,
                       placas:str, fecha:date, hora:time, area:str, creado_por:UUID):
         async with self._async_session_maker() as session:
-            # Buscar usuario
-            filtrosUsuario = []
-            if nombre_usuario:
-                filtrosUsuario.append(UsuarioORM.Nombre == nombre_usuario)
-            if apellido_paterno_usuario:
-                filtrosUsuario.append(UsuarioORM.Apellido_Paterno == apellido_paterno_usuario)
-            if apellido_materno_usuario:
-                filtrosUsuario.append(UsuarioORM.Apellido_Materno == apellido_materno_usuario)
-            
-            result_usuario = await session.execute(select(UsuarioORM).where(*filtrosUsuario))
-            usuario = result_usuario.scalars().first()
+            # El nombre de la persona visitada ahora es texto libre, no requiere búsqueda
+            # Solo guardamos el texto si se proporcionó
+            nombre_persona = None
+            if nombre_persona_visitada and nombre_persona_visitada.strip():
+                nombre_persona = nombre_persona_visitada.strip()
 
-            # Buscar visitante
+            # Buscar visitante (obligatorio)
             filtrosVisitante = []
             if nombre_visitante:
                 filtrosVisitante.append(VisitanteORM.Nombre == nombre_visitante)
@@ -149,9 +143,6 @@ class UsuarioServicios:
             result_visitante = await session.execute(select(VisitanteORM).where(*filtrosVisitante))
             visitante = result_visitante.scalars().first()
 
-            if not usuario:
-                raise ValueError(f"Personal del sistema no encontrado: {nombre_usuario} {apellido_paterno_usuario} {apellido_materno_usuario}. Debe estar registrado previamente en la tabla de usuarios del sistema.")
-            
             if not visitante:
                 raise ValueError(f"Visitante no encontrado: {nombre_visitante} {apellido_paterno_visitante} {apellido_materno_visitante}. Debe crearse primero antes de agendar la cita.")
         
@@ -163,7 +154,8 @@ class UsuarioServicios:
         
             new_cita = CitasORM(
                 Visitante_Id = visitante.Id,
-                Usuario_Visitado = usuario.Id,
+                Usuario_Visitado = None,  # Ya no usamos esta relación
+                Nombre_Persona_Visitada = nombre_persona,  # Guardamos el texto libre
                 Carro_Id = carro.Id if carro else None,
                 Creado_Por = creado_por,
                 Fecha = fecha,
@@ -174,20 +166,27 @@ class UsuarioServicios:
             await session.commit()
             await session.refresh(new_cita)
         
-        
-            email_service = EmailService()
-            nombre_completo_usuario = f"{usuario.Nombre} {usuario.Apellido_Paterno} {usuario.Apellido_Materno}"
-        
-            await email_service.send_confirmation_email(
-                destinatario_email=visitante.Correo,
-                nombre_visitante=visitante.Nombre,
-                apellido_paterno=visitante.Apellido_Paterno,
-                apellido_materno=visitante.Apellido_Materno,
-                nombre_usuario=nombre_completo_usuario,
-                fecha=fecha,
-                hora=hora,
-                placas=placas
+            # Enviar email de confirmación (opcional, no debe bloquear la cita)
+            try:
+                email_service = EmailService()
+                
+                # Usar el nombre de la persona visitada o el área
+                nombre_completo_usuario = nombre_persona if nombre_persona else f"Área de {area}"
+            
+                await email_service.send_confirmation_email(
+                    destinatario_email=visitante.Correo,
+                    nombre_visitante=visitante.Nombre,
+                    apellido_paterno=visitante.Apellido_Paterno,
+                    apellido_materno=visitante.Apellido_Materno,
+                    nombre_usuario=nombre_completo_usuario,
+                    fecha=fecha,
+                    hora=hora,
+                    placas=placas
                 )
+            except Exception as e:
+                # Solo logear el error, no fallar la creación de la cita
+                print(f"Error al enviar email de confirmación: {str(e)}")
+                # La cita ya fue creada exitosamente
     
     async def verificar_permiso_cita(self, cita_id: UUID, usuario_id: UUID, rol: str):
         """Verifica si el usuario tiene permiso para modificar/eliminar una cita"""
