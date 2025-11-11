@@ -382,7 +382,7 @@ export default function Agregar({ visitantes, setVisitantes }) {
                 Persona a visitar (Opcional)
               </p>
               <p className="text-xs text-blue-600 mb-3">
-                Ingresa el nombre completo de la persona a visitar. NO necesita estar registrada en el sistema. Si solo deseas visitar un área, deja este campo vacío.
+                Ingresa el nombre completo de la persona a visitar. Si solo deseas visitar un área, deja este campo vacío.
               </p>
               <div className="grid grid-cols-1 gap-3">
                 <input

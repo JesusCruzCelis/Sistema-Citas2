@@ -206,7 +206,7 @@ const AddAdmin = () => {
               required
               pattern="[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+"
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              placeholder="Ej. García López"
+              placeholder="Ej. García"
               title="Solo letras y espacios"
             />
           </div>
@@ -222,7 +222,7 @@ const AddAdmin = () => {
               required
               pattern="[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+"
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              placeholder="Ej. Martínez Ruiz"
+              placeholder="Ej. Martínez"
               title="Solo letras y espacios"
             />
           </div>
@@ -299,7 +299,7 @@ const AddAdmin = () => {
           <div>
             <label className="block text-gray-700 font-semibold mb-1">
               Contraseña
-              <span className="text-xs text-gray-500 ml-2">(mínimo 8 caracteres, sin espacios)</span>
+              <span className="text-xs text-gray-500 ml-2">(mínimo 8 caracteres, una mayúscula, con un caracter especial, sin espacios)</span>
             </label>
             <input
               type="password"
