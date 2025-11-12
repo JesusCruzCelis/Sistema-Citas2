@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { citasAPI } from "../services/api";
-import { showSuccess, showError, showWarning, showConfirm, showDeleteConfirm, showLoading, closeLoading, showCustomAlert } from "../utils/alerts";
+import { showSuccess, showError, showWarning, showInfo, showConfirm, showDeleteConfirm, showLoading, closeLoading, showCustomAlert } from "../utils/alerts";
 
 export default function Consultar() {
   const [visitantes, setVisitantes] = useState([]);
@@ -197,7 +197,16 @@ export default function Consultar() {
       // Cerrar modal
       setShowModal(false);
       closeLoading();
-      await showSuccess("La cita ha sido reagendada correctamente", "¡Cita reagendada!");
+      await showSuccess(
+        "La cita ha sido reagendada correctamente. Se ha enviado un correo de confirmación con los nuevos detalles.",
+        "¡Cita reagendada!"
+      );
+      
+      // Mostrar información de contacto
+      await showInfo(
+        "Para cualquier duda sobre tu cita, contáctanos al: 951 458 1314",
+        "Confirmación enviada"
+      );
     } catch (error) {
       console.error("Error al reagendar:", error);
       closeLoading();

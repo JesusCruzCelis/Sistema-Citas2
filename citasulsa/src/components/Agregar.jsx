@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { visitantesAPI, carrosAPI, citasAPI } from "../services/api";
-import { showSuccess, showError, showWarning, showLoading, closeLoading } from "../utils/alerts";
+import { showSuccess, showError, showWarning, showInfo, showLoading, closeLoading } from "../utils/alerts";
 
 export default function Agregar({ visitantes, setVisitantes }) {
   // Obtener la fecha de hoy en formato YYYY-MM-DD
@@ -450,8 +450,14 @@ export default function Agregar({ visitantes, setVisitantes }) {
 
       closeLoading();
       await showSuccess(
-        `La cita ha sido registrada exitosamente para ${formData.nombre} ${formData.apellidoPaterno}`,
+        `La cita ha sido registrada exitosamente para ${formData.nombre} ${formData.apellidoPaterno}. Recibirás un correo de confirmación.`,
         "¡Cita registrada!"
+      );
+      
+      // Mostrar información de contacto
+      await showInfo(
+        "Se ha enviado una confirmación por correo electrónico. Para cualquier duda, contáctanos al: 951 458 1314",
+        "Confirmación enviada"
       );
 
       // Limpiar formulario

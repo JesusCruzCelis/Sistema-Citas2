@@ -23,6 +23,7 @@ class EmailService:
         nombre_usuario: str,
         fecha: date,
         hora: time,
+        area: str,
         placas: str = None
     ):
         try:
@@ -114,6 +115,10 @@ class EmailService:
                             </div>
                             
                             <div class="info-item">
+                                <span class="label">🏢 Área:</span> {area}
+                            </div>
+                            
+                            <div class="info-item">
                                 <span class="label">🚶 Medio de ingreso:</span> {medio_ingreso}
                             </div>
                         </div>
@@ -124,6 +129,11 @@ class EmailService:
                             <li>Traiga una identificación oficial vigente</li>
                             <li>Si necesita reagendar, contacte con anticipación</li>
                         </ul>
+
+                        <div class="contact-box" style="background-color: #f0f7ff; border: 2px solid #1e3a8a; padding: 15px; margin: 20px 0; border-radius: 5px; text-align: center;">
+                            <p><strong>📞 ¿Tiene alguna duda?</strong></p>
+                            <p>Contáctenos al: <strong style="color: #1e3a8a; font-size: 18px;">951 458 1314</strong></p>
+                        </div>
                         
                         <p>Si tiene alguna duda, no dude en contactarnos.</p>
                         
@@ -256,5 +266,195 @@ class EmailService:
 
         except Exception as e:
             print(f"❌ Error al enviar email de restablecimiento: {str(e)}")
+            return False
+
+    async def send_reschedule_email(
+        self,
+        destinatario_email: str,
+        nombre_visitante: str,
+        apellido_paterno: str,
+        apellido_materno: str,
+        nombre_usuario: str,
+        fecha_anterior: date,
+        hora_anterior: time,
+        fecha_nueva: date,
+        hora_nueva: time,
+        area: str,
+        placas: str = None
+    ):
+        """
+        Envía un correo de confirmación cuando se reagenda una cita.
+        """
+        try:
+            mensaje = MIMEMultipart("alternative")
+            mensaje["Subject"] = "🔄 Cambio de Fecha/Hora de Cita - Sistema de Visitas"
+            mensaje["From"] = self.user
+            mensaje["To"] = destinatario_email
+
+            medio_ingreso = f"En vehículo (Placas: {placas})" if placas else "A pie"
+            
+            # Fechas anteriores
+            fecha_anterior_formateada = fecha_anterior.strftime("%d/%m/%Y")
+            hora_anterior_formateada = hora_anterior.strftime("%H:%M")
+            
+            # Fechas nuevas
+            fecha_nueva_formateada = fecha_nueva.strftime("%d/%m/%Y")
+            hora_nueva_formateada = hora_nueva.strftime("%H:%M")
+
+            html_content = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body {{
+                        font-family: Arial, sans-serif;
+                        line-height: 1.6;
+                        color: #333;
+                    }}
+                    .container {{
+                        max-width: 600px;
+                        margin: 0 auto;
+                        padding: 20px;
+                        background-color: #f9f9f9;
+                        border-radius: 10px;
+                    }}
+                    .header {{
+                        background-color: #f59e0b;
+                        color: white;
+                        padding: 20px;
+                        text-align: center;
+                        border-radius: 10px 10px 0 0;
+                    }}
+                    .content {{
+                        background-color: white;
+                        padding: 30px;
+                        border-radius: 0 0 10px 10px;
+                    }}
+                    .info-box {{
+                        background-color: #fff7ed;
+                        border-left: 4px solid #f59e0b;
+                        padding: 15px;
+                        margin: 20px 0;
+                    }}
+                    .old-info {{
+                        background-color: #fee2e2;
+                        border-left: 4px solid #ef4444;
+                        padding: 15px;
+                        margin: 10px 0;
+                        text-decoration: line-through;
+                        opacity: 0.7;
+                    }}
+                    .new-info {{
+                        background-color: #d1fae5;
+                        border-left: 4px solid #10b981;
+                        padding: 15px;
+                        margin: 10px 0;
+                    }}
+                    .info-item {{
+                        margin: 10px 0;
+                    }}
+                    .label {{
+                        font-weight: bold;
+                        color: #1e3a8a;
+                    }}
+                    .footer {{
+                        text-align: center;
+                        margin-top: 20px;
+                        color: #666;
+                        font-size: 12px;
+                    }}
+                    .contact-box {{
+                        background-color: #f0f7ff;
+                        border: 2px solid #1e3a8a;
+                        padding: 15px;
+                        margin: 20px 0;
+                        border-radius: 5px;
+                        text-align: center;
+                    }}
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1>🔄 Cita Reagendada</h1>
+                    </div>
+                    <div class="content">
+                        <p>Estimado/a <strong>{nombre_visitante} {apellido_paterno} {apellido_materno}</strong>,</p>
+                        
+                        <p>Le informamos que su cita ha sido <strong>reagendada exitosamente</strong>.</p>
+                        
+                        <h3 style="color: #ef4444;">❌ Fecha y Hora Anterior:</h3>
+                        <div class="old-info">
+                            <div class="info-item">
+                                <span class="label">📅 Fecha:</span> {fecha_anterior_formateada}
+                            </div>
+                            <div class="info-item">
+                                <span class="label">🕐 Hora:</span> {hora_anterior_formateada}
+                            </div>
+                        </div>
+
+                        <h3 style="color: #10b981;">✅ Nueva Fecha y Hora:</h3>
+                        <div class="new-info">
+                            <div class="info-item">
+                                <span class="label">📅 Fecha:</span> {fecha_nueva_formateada}
+                            </div>
+                            <div class="info-item">
+                                <span class="label">🕐 Hora:</span> {hora_nueva_formateada}
+                            </div>
+                        </div>
+                        
+                        <div class="info-box">
+                            <h3 style="margin-top: 0; color: #1e3a8a;">Detalles de la Cita:</h3>
+                            
+                            <div class="info-item">
+                                <span class="label">👤 Visitará a:</span> {nombre_usuario}
+                            </div>
+                            
+                            <div class="info-item">
+                                <span class="label">🏢 Área:</span> {area}
+                            </div>
+                            
+                            <div class="info-item">
+                                <span class="label">🚶 Medio de ingreso:</span> {medio_ingreso}
+                            </div>
+                        </div>
+                        
+                        <p><strong>⚠️ Importante:</strong></p>
+                        <ul>
+                            <li>Por favor llegue 10 minutos antes de su cita</li>
+                            <li>Traiga una identificación oficial vigente</li>
+                            <li>Asegúrese de anotar la nueva fecha y hora</li>
+                        </ul>
+
+                        <div class="contact-box">
+                            <p><strong>📞 ¿Tiene alguna duda?</strong></p>
+                            <p>Contáctenos al: <strong style="color: #1e3a8a; font-size: 18px;">951 458 1314</strong></p>
+                        </div>
+                        
+                        <p>Saludos cordiales,<br>
+                        <strong>Sistema de Gestión de Visitas</strong></p>
+                    </div>
+                    
+                    <div class="footer">
+                        <p>Este es un correo automático, por favor no responda a este mensaje.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """
+
+            parte_html = MIMEText(html_content, "html")
+            mensaje.attach(parte_html)
+
+            with smtplib.SMTP(self.host, self.port) as server:
+                server.starttls()
+                server.login(self.user, self.password)
+                server.send_message(mensaje)
+
+            print(f"✅ Email de reagendado enviado correctamente a {destinatario_email}")
+            return True
+
+        except Exception as e:
+            print(f"❌ Error al enviar email de reagendado: {str(e)}")
             return False
 

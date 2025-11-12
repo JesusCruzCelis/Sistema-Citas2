@@ -200,6 +200,7 @@ class UsuarioServicios:
                     nombre_usuario=nombre_completo_usuario,
                     fecha=fecha,
                     hora=hora,
+                    area=area,
                     placas=placas
                 )
             except Exception as e:
@@ -242,18 +243,64 @@ class UsuarioServicios:
             await self.verificar_permiso_cita(id, usuario_id, rol)
         
         async with self._async_session_maker() as session: 
-            result = await session.execute(select(CitasORM).where(CitasORM.Id == id))
+            result = await session.execute(
+                select(CitasORM)
+                .options(
+                    selectinload(CitasORM.visitante),
+                    selectinload(CitasORM.carro)
+                )
+                .where(CitasORM.Id == id)
+            )
             update_cita = result.scalars().first()
 
             if not update_cita:
                 raise ValueError("Cita no encontrada")
 
+            # Guardar valores anteriores para el correo
+            fecha_anterior = update_cita.Fecha
+            hora_anterior = update_cita.Hora
+            
+            # Actualizar fecha y hora
             if fecha:
                 update_cita.Fecha = fecha
             if hora:
                 update_cita.Hora = hora
+            
             await session.commit()
             await session.refresh(update_cita)
+            
+            # Enviar email de confirmación de reagendado (opcional, no debe bloquear)
+            try:
+                email_service = EmailService()
+                visitante = update_cita.visitante
+                
+                if visitante and visitante.Correo:
+                    # Usar el nombre de la persona visitada o el área
+                    nombre_completo_usuario = (
+                        update_cita.Nombre_Persona_Visitada 
+                        if update_cita.Nombre_Persona_Visitada 
+                        else f"Área de {update_cita.Area}"
+                    )
+                    
+                    placas = update_cita.carro.Placas if update_cita.carro else None
+                    
+                    await email_service.send_reschedule_email(
+                        destinatario_email=visitante.Correo,
+                        nombre_visitante=visitante.Nombre,
+                        apellido_paterno=visitante.Apellido_Paterno,
+                        apellido_materno=visitante.Apellido_Materno,
+                        nombre_usuario=nombre_completo_usuario,
+                        fecha_anterior=fecha_anterior,
+                        hora_anterior=hora_anterior,
+                        fecha_nueva=update_cita.Fecha,
+                        hora_nueva=update_cita.Hora,
+                        area=update_cita.Area,
+                        placas=placas
+                    )
+            except Exception as e:
+                # Solo logear el error, no fallar la actualización de la cita
+                print(f"⚠️ Error al enviar email de reagendado: {str(e)}")
+                # La cita ya fue actualizada exitosamente
     
     async def delete_cita_by_id(self, id: UUID, usuario_id: UUID = None, rol: str = None):
         # Verificar permisos si se proporciona usuario y rol
