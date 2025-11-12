@@ -22,22 +22,33 @@ export default function ResetPassword() {
     }
 
     try {
+      console.log("📤 Enviando petición a:", `http://localhost:8000/universidad/usuarios/reset/${email}`);
+      
       // Llamamos al endpoint de FastAPI
       const response = await fetch(
-        `http://localhost:8000/usuarios/reset/${encodeURIComponent(email)}?password=${encodeURIComponent(password)}`,
+        `http://localhost:8000/universidad/usuarios/reset/${encodeURIComponent(email)}?password=${encodeURIComponent(password)}`,
         {
           method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
         }
       );
 
+      console.log("📥 Respuesta recibida:", response.status, response.statusText);
+
       if (!response.ok) {
-        throw new Error("Error al actualizar la contraseña");
+        const errorData = await response.json().catch(() => ({}));
+        console.error("❌ Error del servidor:", errorData);
+        throw new Error(errorData.detail || "Error al actualizar la contraseña");
       }
 
+      const data = await response.json();
+      console.log("✅ Éxito:", data);
       setCambiada(true);
     } catch (error) {
       console.error("❌ Error:", error);
-      alert("Hubo un problema al cambiar la contraseña.");
+      alert(`Hubo un problema al cambiar la contraseña: ${error.message}`);
     }
   };
 

@@ -305,18 +305,19 @@ async def create_visitante(visitante_data: VisitanteRequestCreate, current_user:
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
-@usuarios_routes.post('usuarios/reset/{email}')
-async def usuario_reset_password(email:str,password:str):
+@usuarios_routes.post('/usuarios/reset/{email}')
+async def usuario_reset_password(email: str, password: str):
     service = UsuarioServicios()
     try:
-        await service.reset_password_by_email(email,password)
-        return {"message":"Contraseña actulizada"}
+        await service.reset_password_by_email(email, password)
+        return {"message": "Contraseña actualizada"}
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     
-@usuarios_routes.post('usuarios/email')
+@usuarios_routes.post('/usuarios/email')
 async def send_reset_password(email: str):
-    success = await EmailService.send_reset_password_email(email)
+    email_service = EmailService()
+    success = await email_service.send_reset_password_email(email)
     if not success:
         raise HTTPException(status_code=500, detail="No se pudo enviar el correo")
     return {"message": "Correo de restablecimiento enviado correctamente"}

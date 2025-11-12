@@ -530,9 +530,9 @@ export default function Agregar({ visitantes, setVisitantes }) {
                 onChange={handleChange}
                 max={new Date().toISOString().split('T')[0]}
                 className="border rounded-md px-3 py-2 w-full focus:ring-[#1a237e] focus:border-[#1a237e]"
-                title="La fecha de nacimiento no puede ser hoy o una fecha futura"
+                title="El visitante debe tener al menos 15 años"
               />
-              <p className="text-xs text-gray-500 mt-1">Debe ser una fecha pasada</p>
+              <p className="text-xs text-gray-500 mt-1">El visitante debe tener al menos 15 años</p>
             </div>
 
             <input

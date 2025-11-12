@@ -7,14 +7,29 @@ export default function ForgotPassword() {
   const handleSubmit = async (e) => {
   e.preventDefault();
   try {
-    const res = await fetch(`http://localhost:8000/usuarios/email?email=${encodeURIComponent(email)}`, {
+    console.log("📤 Enviando petición para email:", email);
+    
+    const res = await fetch(`http://localhost:8000/universidad/usuarios/email?email=${encodeURIComponent(email)}`, {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
     });
-    if (!res.ok) throw new Error("Error al enviar el correo");
+    
+    console.log("📥 Respuesta recibida:", res.status, res.statusText);
+    
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      console.error("❌ Error del servidor:", errorData);
+      throw new Error(errorData.detail || "Error al enviar el correo");
+    }
+    
+    const data = await res.json();
+    console.log("✅ Éxito:", data);
     setEnviado(true);
   } catch (error) {
     console.error("Error:", error);
-    alert("Hubo un problema al enviar el correo.");
+    alert(`Hubo un problema al enviar el correo: ${error.message}`);
   }
 };
 

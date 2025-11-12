@@ -5,7 +5,7 @@ from ...Carros.models.carro_orm import CarroORM
 from ...Visitantes.models.visitantes_orm import VisitanteORM
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
-from datetime import date,time
+from datetime import date, time, datetime
 from uuid import UUID
 from .email_servicios import EmailService
 from ...auth.auth import get_password_hash,validate_password_strength
@@ -145,6 +145,25 @@ class UsuarioServicios:
 
             if not visitante:
                 raise ValueError(f"Visitante no encontrado: {nombre_visitante} {apellido_paterno_visitante} {apellido_materno_visitante}. Debe crearse primero antes de agendar la cita.")
+        
+            # Validar edad mínima de 15 años
+            if visitante.Fecha_Nacimiento:
+                hoy = datetime.now().date()
+                edad = hoy.year - visitante.Fecha_Nacimiento.year - (
+                    (hoy.month, hoy.day) < (visitante.Fecha_Nacimiento.month, visitante.Fecha_Nacimiento.day)
+                )
+                
+                # Log para debugging
+                print(f"🔍 DEBUG - Validación de edad:")
+                print(f"   Visitante: {visitante.Nombre} {visitante.Apellido_Paterno}")
+                print(f"   Fecha de nacimiento: {visitante.Fecha_Nacimiento}")
+                print(f"   Fecha actual: {hoy}")
+                print(f"   Edad calculada: {edad} años")
+                
+                if edad < 15:
+                    raise ValueError(f"El visitante debe tener al menos 15 años para poder agendar una cita. Edad actual: {edad} años.")
+                
+                print(f"   ✅ Validación pasada (edad >= 15)")
         
             carro = None
             # Solo buscar el carro si hay placas válidas
@@ -484,18 +503,27 @@ class UsuarioServicios:
                 # Para otros errores, usar un mensaje genérico
                 raise ValueError("Error al buscar usuario en la base de datos")
     
-    async def reset_password_by_email(self,email:str,password:str):
+    async def reset_password_by_email(self, email: str, password: str):
         async with self._async_session_maker() as session:
             try:
-                result = session.execute(select(UsuarioORM).where(UsuarioORM.Email == email))
+                result = await session.execute(select(UsuarioORM).where(UsuarioORM.Email == email))
                 usuario = result.scalars().first()
+                
+                if not usuario:
+                    raise ValueError(f"No se encontró un usuario con el email: {email}")
+                
                 if password:
                     if validate_password_strength(password):
                         usuario.Password = get_password_hash(password)
-                        session.commit()
+                        await session.commit()
                         await session.refresh(usuario)
+                    else:
+                        raise ValueError("La contraseña no cumple con los requisitos mínimos de seguridad")
             except ValueError:
                 raise
+            except Exception as e:
+                await session.rollback()
+                raise ValueError(f"Error al actualizar la contraseña: {str(e)}")
 
         
 
