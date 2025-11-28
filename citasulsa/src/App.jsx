@@ -17,6 +17,7 @@ import UsuariosList from "./components/ConsultarUusarios";
 import ForgotPassword from "./components/ContraseniaOlvidada";
 import ResetPassword from "./components/RestablecerContrasenia";
 import GestionarHorarios from "./components/GestionarHorarios";
+import GestionarHorariosAreas from "./components/GestionarHorariosAreas";
 
 const App = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -159,6 +160,17 @@ const App = () => {
             <RutaProtegida rolesPermitidos={["admin_sistema"]}>
               <PageLayout>
                 <GestionarHorarios />
+              </PageLayout>
+            </RutaProtegida>
+          }
+        />
+
+        <Route
+          path="/gestionar-horarios-areas"
+          element={
+            <RutaProtegida rolesPermitidos={["admin_sistema", "admin_escuela"]}>
+              <PageLayout>
+                <GestionarHorariosAreas />
               </PageLayout>
             </RutaProtegida>
           }

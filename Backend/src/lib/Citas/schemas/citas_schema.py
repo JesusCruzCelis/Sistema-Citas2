@@ -61,6 +61,17 @@ class CitasRequestUpdate(BaseModel):
     Carro_Id: Optional[UUID] = Field(None)
     Fecha: Optional[date] = Field(None)
     Hora: Optional[time] = Field(None)
+    Estado: Optional[str] = Field(None)  # activa, completada, cancelada
+
+    @field_validator('Estado')
+    @classmethod
+    def validar_estado(cls, value: Optional[str]):
+        if value is None:
+            return value
+        estados_validos = ['activa', 'completada', 'cancelada']
+        if value not in estados_validos:
+            raise ValueError(f"Estado debe ser uno de: {', '.join(estados_validos)}")
+        return value
 
     @field_validator('Fecha')
     @classmethod
@@ -96,6 +107,7 @@ class CitasResponseBase(BaseModel):
     Area:str
     Nombre_Persona_Visitada: Optional[str] = None  # Nombre en texto libre
     Creado_Por:UUID
+    Estado:str = 'activa'  # activa, completada, cancelada
 
     model_config = {"from_attributes": True}
 

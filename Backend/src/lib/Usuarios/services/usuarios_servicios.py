@@ -857,6 +857,37 @@ class UsuarioServicios:
             # Retornar True solo si el horario es de tipo "libre"
             return horario.Tipo == "libre"
 
+    async def actualizar_estados_citas(self):
+        """
+        Actualiza automáticamente el estado de las citas.
+        Las citas cuya fecha y hora ya pasaron se marcan como 'completada'.
+        """
+        async with self._async_session_maker() as session:
+            now = datetime.now()
+            
+            # Buscar citas activas cuya fecha y hora ya pasaron
+            query = select(CitasORM).where(
+                CitasORM.Estado == 'activa'
+            )
+            
+            result = await session.execute(query)
+            citas = result.scalars().all()
+            
+            citas_actualizadas = 0
+            for cita in citas:
+                # Combinar fecha y hora para comparar
+                cita_datetime = datetime.combine(cita.Fecha, cita.Hora)
+                
+                if cita_datetime < now:
+                    cita.Estado = 'completada'
+                    citas_actualizadas += 1
+            
+            if citas_actualizadas > 0:
+                await session.commit()
+                print(f"✅ {citas_actualizadas} citas actualizadas a 'completada'")
+            
+            return citas_actualizadas
+
         
 
         

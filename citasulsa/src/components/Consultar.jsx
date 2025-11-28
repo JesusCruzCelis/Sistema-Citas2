@@ -6,6 +6,7 @@ export default function Consultar() {
   const [visitantes, setVisitantes] = useState([]);
   const [visitantesFiltrados, setVisitantesFiltrados] = useState([]);
   const [mesSeleccionado, setMesSeleccionado] = useState("");
+  const [estadoSeleccionado, setEstadoSeleccionado] = useState(""); // Nuevo filtro de estado
   const [showModal, setShowModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
@@ -51,6 +52,7 @@ export default function Consultar() {
         area: cita.Area || 'N/A',
         personaVisitada: cita.Nombre_Persona_Visitada || null,  // Campo de texto libre
         medio: cita.visitante?.Ingreso || 'N/A',
+        estado: cita.Estado || 'activa',  // Estado de la cita
         visitante: cita.visitante,
         carro: cita.carro,
         usuario: cita.usuario_visitado
@@ -70,20 +72,34 @@ export default function Consultar() {
   const handleMesChange = (e) => {
     const mes = e.target.value;
     setMesSeleccionado(mes);
+    aplicarFiltros(mes, estadoSeleccionado);
+  };
 
-    if (mes === "") {
-      // Si no se selecciona ningún mes, mostrar todo
-      setVisitantesFiltrados(visitantes);
-      return;
-    }
+  // 🔹 Manejar cambio de estado
+  const handleEstadoChange = (e) => {
+    const estado = e.target.value;
+    setEstadoSeleccionado(estado);
+    aplicarFiltros(mesSeleccionado, estado);
+  };
+
+  // 🔹 Aplicar filtros combinados
+  const aplicarFiltros = (mes, estado) => {
+    let filtrados = [...visitantes];
 
     // Filtrar por mes
-    const mesNumero = obtenerNumeroMes(mes);
-    const filtrados = visitantes.filter((v) => {
-      if (!v.fechaCita) return false;
-      const fecha = new Date(v.fechaCita);
-      return fecha.getMonth() + 1 === mesNumero;
-    });
+    if (mes !== "") {
+      const mesNumero = obtenerNumeroMes(mes);
+      filtrados = filtrados.filter((v) => {
+        if (!v.fechaCita) return false;
+        const fecha = new Date(v.fechaCita);
+        return fecha.getMonth() + 1 === mesNumero;
+      });
+    }
+
+    // Filtrar por estado
+    if (estado !== "") {
+      filtrados = filtrados.filter((v) => v.estado === estado);
+    }
 
     setVisitantesFiltrados(filtrados);
   };
@@ -512,30 +528,49 @@ export default function Consultar() {
         Consultar registros
       </h2>
 
-      {/* Selector de mes funcional */}
-      <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Mes
-        </label>
-        <select
-          value={mesSeleccionado}
-          onChange={handleMesChange}
-          className="border border-gray-300 rounded-md px-3 py-2 w-60 shadow-sm focus:ring-2 focus:ring-[#37AADF] focus:border-[#37AADF]"
-        >
-          <option value="">-- Todos los meses --</option>
-          <option>Enero</option>
-          <option>Febrero</option>
-          <option>Marzo</option>
-          <option>Abril</option>
-          <option>Mayo</option>
-          <option>Junio</option>
-          <option>Julio</option>
-          <option>Agosto</option>
-          <option>Septiembre</option>
-          <option>Octubre</option>
-          <option>Noviembre</option>
-          <option>Diciembre</option>
-        </select>
+      {/* Filtros */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        {/* Selector de mes */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Mes
+          </label>
+          <select
+            value={mesSeleccionado}
+            onChange={handleMesChange}
+            className="border border-gray-300 rounded-md px-3 py-2 w-full shadow-sm focus:ring-2 focus:ring-[#37AADF] focus:border-[#37AADF]"
+          >
+            <option value="">-- Todos los meses --</option>
+            <option>Enero</option>
+            <option>Febrero</option>
+            <option>Marzo</option>
+            <option>Abril</option>
+            <option>Mayo</option>
+            <option>Junio</option>
+            <option>Julio</option>
+            <option>Agosto</option>
+            <option>Septiembre</option>
+            <option>Octubre</option>
+            <option>Noviembre</option>
+            <option>Diciembre</option>
+          </select>
+        </div>
+
+        {/* Selector de estado */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Estado
+          </label>
+          <select
+            value={estadoSeleccionado}
+            onChange={handleEstadoChange}
+            className="border border-gray-300 rounded-md px-3 py-2 w-full shadow-sm focus:ring-2 focus:ring-[#37AADF] focus:border-[#37AADF]"
+          >
+            <option value="">-- Todos los estados --</option>
+            <option value="activa">Activas</option>
+            <option value="completada">Completadas</option>
+          </select>
+        </div>
       </div>
 
       {/* Tabla de registros */}
@@ -553,14 +588,15 @@ export default function Consultar() {
               <th className="p-3">Persona a visitar</th>
               <th className="p-3">Área visitada</th>
               <th className="p-3">Medio de ingreso</th>
+              <th className="p-3">Estado</th>
               <th className="p-3 text-center">Acciones</th>
             </tr>
           </thead>
           <tbody>
             {visitantesFiltrados.length === 0 ? (
               <tr>
-                <td colSpan="7" className="text-center p-4 text-gray-500">
-                  No hay registros en este mes
+                <td colSpan="8" className="text-center p-4 text-gray-500">
+                  No hay registros
                 </td>
               </tr>
             ) : (
@@ -578,6 +614,19 @@ export default function Consultar() {
                   </td>
                   <td className="p-3">{v.area}</td>
                   <td className="p-3">{v.medio}</td>
+                  <td className="p-3">
+                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                      v.estado === 'activa' ? 'bg-green-100 text-green-800' :
+                      v.estado === 'completada' ? 'bg-gray-100 text-gray-800' :
+                      v.estado === 'cancelada' ? 'bg-red-100 text-red-800' :
+                      'bg-blue-100 text-blue-800'
+                    }`}>
+                      {v.estado === 'activa' ? '🟢 Activa' :
+                       v.estado === 'completada' ? '⚪ Completada' :
+                       v.estado === 'cancelada' ? '🔴 Cancelada' :
+                       v.estado}
+                    </span>
+                  </td>
                   <td className="p-3 text-center">
                     <div className="flex gap-2 justify-center">
                       <button

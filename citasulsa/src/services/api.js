@@ -418,6 +418,71 @@ export const horariosAPI = {
   }
 };
 
+// ==================== HORARIOS DE ÁREAS ====================
+export const horariosAreasAPI = {
+  // Crear horario de área
+  create: async (horarioData) => {
+    const response = await fetch(`${API_BASE_URL}/horarios-areas/add`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(horarioData)
+    });
+    return handleResponse(response);
+  },
+
+  // Obtener todos los horarios de un área
+  getByArea: async (area) => {
+    const response = await fetch(`${API_BASE_URL}/horarios-areas/area/${encodeURIComponent(area)}`, {
+      headers: getAuthHeaders()
+    });
+    return handleResponse(response);
+  },
+
+  // Obtener todos los horarios de todas las áreas
+  getAll: async () => {
+    const response = await fetch(`${API_BASE_URL}/horarios-areas/all`, {
+      headers: getAuthHeaders()
+    });
+    return handleResponse(response);
+  },
+
+  // Obtener un horario por ID
+  getById: async (horarioId) => {
+    const response = await fetch(`${API_BASE_URL}/horarios-areas/${horarioId}`, {
+      headers: getAuthHeaders()
+    });
+    return handleResponse(response);
+  },
+
+  // Actualizar horario
+  update: async (horarioId, horarioData) => {
+    const response = await fetch(`${API_BASE_URL}/horarios-areas/${horarioId}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(horarioData)
+    });
+    return handleResponse(response);
+  },
+
+  // Eliminar horario
+  delete: async (horarioId) => {
+    const response = await fetch(`${API_BASE_URL}/horarios-areas/${horarioId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(response);
+  },
+
+  // Eliminar todos los horarios de un área
+  deleteByArea: async (area) => {
+    const response = await fetch(`${API_BASE_URL}/horarios-areas/area/${encodeURIComponent(area)}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(response);
+  }
+};
+
 
 export default {
   auth: authAPI,
@@ -425,5 +490,6 @@ export default {
   visitantes: visitantesAPI,
   citas: citasAPI,
   carros: carrosAPI,
-  horarios: horariosAPI
+  horarios: horariosAPI,
+  horariosAreas: horariosAreasAPI
 };

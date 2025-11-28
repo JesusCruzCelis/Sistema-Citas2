@@ -16,6 +16,7 @@ class CitasORM(Base):
     Fecha = Column(Date,nullable=False)
     Hora = Column(Time,nullable=False)
     Area = Column(String(100),nullable=False)
+    Estado = Column(String(20),nullable=False,default='activa')  # activa, completada, cancelada
 
     visitante = relationship("VisitanteORM",back_populates="cita")
     usuario_visitado = relationship("UsuarioORM",back_populates="cita",foreign_keys=[Usuario_Visitado])

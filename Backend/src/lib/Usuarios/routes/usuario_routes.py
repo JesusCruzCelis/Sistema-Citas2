@@ -440,6 +440,23 @@ async def verificar_disponibilidad(usuario_id: UUID, dia_semana: int, hora: time
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
+@usuarios_routes.post('/citas/actualizar-estados', status_code=status.HTTP_200_OK)
+async def actualizar_estados_citas(current_user: dict = Depends(require_any_role)):
+    """
+    Actualiza automáticamente el estado de las citas.
+    Las citas cuya fecha y hora ya pasaron se marcan como 'completada'.
+    """
+    service = UsuarioServicios()
+    try:
+        citas_actualizadas = await service.actualizar_estados_citas()
+        return {
+            "mensaje": "Estados actualizados correctamente",
+            "citas_actualizadas": citas_actualizadas
+        }
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
 
 
 
