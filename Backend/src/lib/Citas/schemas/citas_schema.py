@@ -14,6 +14,9 @@ class CitasRequestCreate(BaseModel):
     - Nombre_Persona_Visitada: Campo de texto libre con el nombre de la persona a visitar.
       NO necesita estar registrada en el sistema. Es OPCIONAL.
     
+    - Usuario_Visitado: UUID del coordinador/admin de escuela asignado a la cita.
+      Si se especifica, la cita se asociará con este usuario. Es OPCIONAL.
+    
     - Nombre_Visitante, Apellido_Paterno_Visitante, Apellido_Materno_Visitante:
       Se refiere a la persona externa que hace la visita.
       Se creará automáticamente en la tabla 'visitantes' antes de crear la cita.
@@ -22,6 +25,7 @@ class CitasRequestCreate(BaseModel):
       Este campo es OBLIGATORIO y es el destino principal de la visita.
     """
     Nombre_Persona_Visitada: Optional[str] = None  # Texto libre, no requiere registro previo
+    Usuario_Visitado: Optional[UUID] = None  # UUID del coordinador asignado
     Nombre_Visitante:str
     Apellido_Paterno_Visitante:str
     Apellido_Materno_Visitante:str
@@ -109,8 +113,9 @@ class CitasResponseDetail(CitasResponseBase):
     model_config = {"from_attributes":True}
 
 
-class CitaResponseAdmin(CitasResponse):
-
+class CitaResponseAdmin(CitasResponseBase):
+    visitante:VisitanteResponse
+    carro:Optional[CarroResponseDetail] = None
     usuario_visitado: Optional[UsuarioResponse] = None
 
     model_config = {"from_attributes":True}

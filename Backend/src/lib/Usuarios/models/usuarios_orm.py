@@ -21,6 +21,7 @@ class UsuarioORM(Base):
     
     cita = relationship("CitasORM",back_populates="usuario_visitado",foreign_keys="CitasORM.Usuario_Visitado",passive_deletes=True)
     citas_creadas = relationship("CitasORM",foreign_keys="CitasORM.Creado_Por",passive_deletes=True)
+    horarios = relationship("HorarioCoordinadorORM", back_populates="usuario", cascade="all, delete-orphan", passive_deletes=True)
 
 
 

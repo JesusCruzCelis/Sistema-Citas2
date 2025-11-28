@@ -294,6 +294,28 @@ export const citasAPI = {
       headers: getAuthHeaders()
     });
     return handleResponse(response);
+  },
+
+  // Obtener horas ocupadas para una fecha específica
+  getHorasOcupadas: async (fecha, area = null, personaVisitadaId = null) => {
+    let url = `${API_BASE_URL}/universidad/citas/horas-ocupadas/${fecha}`;
+    const params = new URLSearchParams();
+    
+    if (area) {
+      params.append('area', area);
+    }
+    if (personaVisitadaId) {
+      params.append('persona_visitada_id', personaVisitadaId);
+    }
+    
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+    
+    const response = await fetch(url, {
+      headers: getAuthHeaders()
+    });
+    return handleResponse(response);
   }
 };
 
@@ -345,10 +367,63 @@ export const carrosAPI = {
   }
 };
 
+// ==================== HORARIOS DE COORDINADORES ====================
+export const horariosAPI = {
+  // Crear horario
+  create: async (horarioData) => {
+    const response = await fetch(`${API_BASE_URL}/universidad/horarios/add`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(horarioData)
+    });
+    return handleResponse(response);
+  },
+
+  // Obtener horarios de un coordinador
+  getByUsuario: async (usuarioId) => {
+    const response = await fetch(`${API_BASE_URL}/universidad/horarios/${usuarioId}`, {
+      headers: getAuthHeaders()
+    });
+    return handleResponse(response);
+  },
+
+  // Actualizar horario
+  update: async (horarioId, horarioData) => {
+    const response = await fetch(`${API_BASE_URL}/universidad/horarios/modify/${horarioId}`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(horarioData)
+    });
+    return handleResponse(response);
+  },
+
+  // Eliminar horario
+  delete: async (horarioId) => {
+    const response = await fetch(`${API_BASE_URL}/universidad/horarios/delete/${horarioId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    return handleResponse(response);
+  },
+
+  // Verificar disponibilidad
+  verificarDisponibilidad: async (usuarioId, diaSemana, hora) => {
+    const response = await fetch(
+      `${API_BASE_URL}/universidad/horarios/disponibilidad/${usuarioId}?dia_semana=${diaSemana}&hora=${hora}`,
+      {
+        headers: getAuthHeaders()
+      }
+    );
+    return handleResponse(response);
+  }
+};
+
+
 export default {
   auth: authAPI,
   usuarios: usuariosAPI,
   visitantes: visitantesAPI,
   citas: citasAPI,
-  carros: carrosAPI
+  carros: carrosAPI,
+  horarios: horariosAPI
 };

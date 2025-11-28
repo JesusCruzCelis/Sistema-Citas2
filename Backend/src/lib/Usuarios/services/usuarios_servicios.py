@@ -1,5 +1,6 @@
 from ....database.database_config import AsyncSessionLocal
 from ...Usuarios.models.usuarios_orm import UsuarioORM
+from ...Usuarios.models.horario_coordinador_orm import HorarioCoordinadorORM
 from ...Citas.models.citas_orm import CitasORM
 from ...Carros.models.carro_orm import CarroORM
 from ...Visitantes.models.visitantes_orm import VisitanteORM
@@ -7,6 +8,7 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 from datetime import date, time, datetime
 from uuid import UUID
+from typing import Optional
 from .email_servicios import EmailService
 from ...auth.auth import get_password_hash,validate_password_strength
 from dotenv import load_dotenv
@@ -121,7 +123,7 @@ class UsuarioServicios:
 
 
 
-    async def create_cita(self, nombre_persona_visitada:str,
+    async def create_cita(self, nombre_persona_visitada:str, usuario_visitado: Optional[UUID],
                       nombre_visitante:str, apellido_paterno_visitante:str, apellido_materno_visitante:str,
                       placas:str, fecha:date, hora:time, area:str, creado_por:UUID):
         async with self._async_session_maker() as session:
@@ -132,19 +134,56 @@ class UsuarioServicios:
                 nombre_persona = nombre_persona_visitada.strip()
 
             # Buscar visitante (obligatorio)
+            # Usar nombre y apellido paterno como mínimo, apellido materno solo si existe
             filtrosVisitante = []
             if nombre_visitante:
                 filtrosVisitante.append(VisitanteORM.Nombre == nombre_visitante)
             if apellido_paterno_visitante:
                 filtrosVisitante.append(VisitanteORM.Apellido_Paterno == apellido_paterno_visitante)
-            if apellido_materno_visitante:
+            
+            # Solo agregar filtro de apellido materno si tiene un valor real (no vacío ni None)
+            if apellido_materno_visitante and apellido_materno_visitante.strip():
                 filtrosVisitante.append(VisitanteORM.Apellido_Materno == apellido_materno_visitante)
+            else:
+                # Si no se proporcionó apellido materno, buscar donde sea NULL o vacío
+                filtrosVisitante.append(
+                    (VisitanteORM.Apellido_Materno == None) | 
+                    (VisitanteORM.Apellido_Materno == "") |
+                    (VisitanteORM.Apellido_Materno == "NoEspecificado")
+                )
+            
+            print(f"🔍 Buscando visitante con filtros:")
+            print(f"   Nombre: {nombre_visitante}")
+            print(f"   Apellido Paterno: {apellido_paterno_visitante}")
+            print(f"   Apellido Materno: {apellido_materno_visitante or 'NULL/Vacío'}")
             
             result_visitante = await session.execute(select(VisitanteORM).where(*filtrosVisitante))
             visitante = result_visitante.scalars().first()
 
             if not visitante:
-                raise ValueError(f"Visitante no encontrado: {nombre_visitante} {apellido_paterno_visitante} {apellido_materno_visitante}. Debe crearse primero antes de agendar la cita.")
+                # Mensaje de error más detallado
+                apellido_completo = f"{apellido_paterno_visitante} {apellido_materno_visitante or '(sin apellido materno)'}"
+                raise ValueError(
+                    f"Visitante no encontrado: {nombre_visitante} {apellido_completo}. "
+                    f"Debe crearse primero antes de agendar la cita."
+                )
+            
+            print(f"✅ Visitante encontrado: {visitante.Nombre} {visitante.Apellido_Paterno} {visitante.Apellido_Materno or '(sin apellido materno)'}")
+        
+            # Validar que no haya otra cita con el mismo email en la misma fecha
+            result_cita_email = await session.execute(
+                select(CitasORM)
+                .join(VisitanteORM)
+                .where(CitasORM.Fecha == fecha)
+                .where(VisitanteORM.Correo == visitante.Correo)
+            )
+            cita_email_existente = result_cita_email.scalars().first()
+            
+            if cita_email_existente:
+                raise ValueError(
+                    f"Ya existe una cita registrada para el correo {visitante.Correo} en la fecha {fecha}. "
+                    f"No se pueden registrar múltiples citas con el mismo email en el mismo día."
+                )
         
             # Validar edad mínima de 15 años
             if visitante.Fecha_Nacimiento:
@@ -165,6 +204,38 @@ class UsuarioServicios:
                 
                 print(f"   ✅ Validación pasada (edad >= 15)")
         
+            # Validar que no haya otra cita en el mismo horario (considerando 30 minutos de duración)
+            # Convertir hora a minutos totales para facilitar la comparación
+            hora_minutos = hora.hour * 60 + hora.minute
+            hora_inicio = hora_minutos - 30  # 30 minutos antes
+            hora_fin = hora_minutos + 30     # 30 minutos después
+            
+            # Obtener todas las citas del mismo día
+            result_citas_dia = await session.execute(
+                select(CitasORM).where(CitasORM.Fecha == fecha)
+            )
+            citas_dia = result_citas_dia.scalars().all()
+            
+            # Verificar si hay conflicto de horario
+            for cita_existente in citas_dia:
+                cita_hora_minutos = cita_existente.Hora.hour * 60 + cita_existente.Hora.minute
+                
+                # Si la cita existente está dentro del rango de 30 minutos (antes o después)
+                if hora_inicio < cita_hora_minutos < hora_fin:
+                    raise ValueError(
+                        f"Ya existe una cita agendada a las {cita_existente.Hora.strftime('%H:%M')}. "
+                        f"Por favor selecciona otro horario (cada cita dura aproximadamente 30 minutos)."
+                    )
+                
+                # También verificar si la nueva cita cae dentro del rango de una cita existente
+                cita_existente_inicio = cita_hora_minutos - 30
+                cita_existente_fin = cita_hora_minutos + 30
+                if cita_existente_inicio < hora_minutos < cita_existente_fin:
+                    raise ValueError(
+                        f"El horario seleccionado coincide con otra cita agendada a las {cita_existente.Hora.strftime('%H:%M')}. "
+                        f"Por favor selecciona otro horario (cada cita dura aproximadamente 30 minutos)."
+                    )
+        
             carro = None
             # Solo buscar el carro si hay placas válidas
             if placas and placas.strip():
@@ -173,7 +244,7 @@ class UsuarioServicios:
         
             new_cita = CitasORM(
                 Visitante_Id = visitante.Id,
-                Usuario_Visitado = None,  # Ya no usamos esta relación
+                Usuario_Visitado = usuario_visitado,  # UUID del coordinador asignado
                 Nombre_Persona_Visitada = nombre_persona,  # Guardamos el texto libre
                 Carro_Id = carro.Id if carro else None,
                 Creado_Por = creado_por,
@@ -310,64 +381,101 @@ class UsuarioServicios:
         async with self._async_session_maker() as session:
             # Obtener la cita con información del visitante
             result = await session.execute(
-                select(CitasORM).where(CitasORM.Id == id)
+                select(CitasORM)
+                .options(selectinload(CitasORM.visitante))
+                .where(CitasORM.Id == id)
             )
             delete_cita = result.scalars().first()
             
             if not delete_cita:
                 raise ValueError("Cita no encontrada")
             
+            # Guardar información para el correo antes de eliminar
+            visitante = delete_cita.visitante
+            fecha_cita = delete_cita.Fecha
+            hora_cita = delete_cita.Hora
+            area_cita = delete_cita.Area
+            nombre_persona_visitada = delete_cita.Nombre_Persona_Visitada
+            
+            # Enviar correo de cancelación
+            try:
+                email_service = EmailService()
+                await email_service.send_cancellation_email(
+                    destinatario_email=visitante.Correo,
+                    nombre_visitante=visitante.Nombre,
+                    apellido_paterno=visitante.Apellido_Paterno,
+                    apellido_materno=visitante.Apellido_Materno,
+                    nombre_usuario=nombre_persona_visitada if nombre_persona_visitada else f"Área de {area_cita}",
+                    fecha=fecha_cita,
+                    hora=hora_cita,
+                    area=area_cita
+                )
+                print(f"✅ Correo de cancelación enviado a {visitante.Correo}")
+            except Exception as e:
+                print(f"⚠️ Error al enviar correo de cancelación: {str(e)}")
+                # Continuar con la eliminación aunque falle el correo
+            
             # Guardar el ID del visitante y del carro antes de eliminar la cita
             visitante_id = delete_cita.Visitante_Id
             carro_id = delete_cita.Carro_Id
             
-            # Eliminar la cita primero
-            await session.delete(delete_cita)
-            await session.commit()
-            
-            # Verificar si el visitante tiene otras citas
+            # Verificar si el visitante tiene otras citas ANTES de eliminar
+            otras_citas_visitante = []
             if visitante_id:
-                # Buscar otras citas del mismo visitante (excluyendo la que acabamos de eliminar)
                 result_otras_citas = await session.execute(
-                    select(CitasORM).where(CitasORM.Visitante_Id == visitante_id)
-                )
-                otras_citas = result_otras_citas.scalars().all()
-                
-                # Solo eliminar el visitante si no tiene otras citas
-                if not otras_citas:
-                    result_visitante = await session.execute(
-                        select(VisitanteORM).where(VisitanteORM.Id == visitante_id)
+                    select(CitasORM).where(
+                        CitasORM.Visitante_Id == visitante_id,
+                        CitasORM.Id != id  # Excluir la cita actual
                     )
-                    visitante = result_visitante.scalars().first()
-                    
-                    if visitante:
-                        await session.delete(visitante)
-                        await session.commit()
-                        print(f"✅ Visitante {visitante.Nombre} {visitante.Apellido_Paterno} eliminado (no tenía otras citas)")
-                else:
-                    print(f"ℹ️ Visitante conservado - tiene {len(otras_citas)} cita(s) adicional(es)")
+                )
+                otras_citas_visitante = result_otras_citas.scalars().all()
+                print(f"🔍 Visitante tiene {len(otras_citas_visitante)} cita(s) adicional(es)")
             
-            # Verificar si el carro tiene otras citas
+            # Verificar si el carro tiene otras citas ANTES de eliminar
+            otras_citas_carro = []
             if carro_id:
-                # Buscar otras citas del mismo carro (excluyendo la que acabamos de eliminar)
                 result_otras_citas_carro = await session.execute(
-                    select(CitasORM).where(CitasORM.Carro_Id == carro_id)
+                    select(CitasORM).where(
+                        CitasORM.Carro_Id == carro_id,
+                        CitasORM.Id != id  # Excluir la cita actual
+                    )
                 )
                 otras_citas_carro = result_otras_citas_carro.scalars().all()
+                print(f"🔍 Carro tiene {len(otras_citas_carro)} cita(s) adicional(es)")
+            
+            # Eliminar la cita
+            await session.delete(delete_cita)
+            print(f"🗑️ Cita eliminada: {id}")
+            
+            # Si el visitante no tiene otras citas, eliminarlo también
+            if visitante_id and len(otras_citas_visitante) == 0:
+                result_visitante = await session.execute(
+                    select(VisitanteORM).where(VisitanteORM.Id == visitante_id)
+                )
+                visitante_obj = result_visitante.scalars().first()
                 
-                # Solo eliminar el carro si no tiene otras citas
-                if not otras_citas_carro:
-                    result_carro = await session.execute(
-                        select(CarroORM).where(CarroORM.Id == carro_id)
-                    )
-                    carro = result_carro.scalars().first()
-                    
-                    if carro:
-                        await session.delete(carro)
-                        await session.commit()
-                        print(f"✅ Carro {carro.Marca} {carro.Modelo} (Placas: {carro.Placas}) eliminado (no tenía otras citas)")
-                else:
-                    print(f"ℹ️ Carro conservado - tiene {len(otras_citas_carro)} cita(s) adicional(es)")
+                if visitante_obj:
+                    await session.delete(visitante_obj)
+                    print(f"🗑️ Visitante eliminado: {visitante_obj.Nombre} {visitante_obj.Apellido_Paterno} (no tenía otras citas)")
+            elif visitante_id:
+                print(f"✓ Visitante conservado: tiene {len(otras_citas_visitante)} cita(s) adicional(es)")
+            
+            # Si el carro no tiene otras citas, eliminarlo también
+            if carro_id and len(otras_citas_carro) == 0:
+                result_carro = await session.execute(
+                    select(CarroORM).where(CarroORM.Id == carro_id)
+                )
+                carro_obj = result_carro.scalars().first()
+                
+                if carro_obj:
+                    await session.delete(carro_obj)
+                    print(f"🗑️ Carro eliminado: {carro_obj.Marca} {carro_obj.Modelo} - Placas: {carro_obj.Placas} (no tenía otras citas)")
+            elif carro_id:
+                print(f"✓ Carro conservado: tiene {len(otras_citas_carro)} cita(s) adicional(es)")
+            
+            # Hacer commit de todas las eliminaciones juntas
+            await session.commit()
+            print(f"✅ Transacción completada exitosamente")
     
 
 
@@ -623,6 +731,131 @@ class UsuarioServicios:
             except Exception as e:
                 await session.rollback()
                 raise ValueError(f"Error al actualizar la contraseña: {str(e)}")
+
+    # ==================== HORARIOS DE COORDINADORES ====================
+    
+    async def create_horario_coordinador(self, usuario_id: UUID, dia_semana: int, 
+                                         hora_inicio: time, hora_fin: time, 
+                                         tipo: str = "libre", descripcion: str = None):
+        """Crear un bloque de horario para un coordinador"""
+        async with self._async_session_maker() as session:
+            # Verificar que el usuario existe y es admin_escuela
+            result = await session.execute(select(UsuarioORM).where(UsuarioORM.Id == usuario_id))
+            usuario = result.scalars().first()
+            
+            if not usuario:
+                raise ValueError("Usuario no encontrado")
+            
+            if usuario.Rol != "admin_escuela":
+                raise ValueError("Solo los coordinadores (admin_escuela) pueden tener horarios asignados")
+            
+            # Verificar que no haya conflicto con horarios existentes
+            result = await session.execute(
+                select(HorarioCoordinadorORM).where(
+                    HorarioCoordinadorORM.Usuario_Id == usuario_id,
+                    HorarioCoordinadorORM.Dia_Semana == dia_semana
+                )
+            )
+            horarios_existentes = result.scalars().all()
+            
+            # Verificar solapamiento de horarios
+            for horario in horarios_existentes:
+                if not (hora_fin <= horario.Hora_Inicio or hora_inicio >= horario.Hora_Fin):
+                    raise ValueError(
+                        f"El horario se solapa con otro existente: "
+                        f"{horario.Hora_Inicio.strftime('%H:%M')} - {horario.Hora_Fin.strftime('%H:%M')}"
+                    )
+            
+            nuevo_horario = HorarioCoordinadorORM(
+                Usuario_Id=usuario_id,
+                Dia_Semana=dia_semana,
+                Hora_Inicio=hora_inicio,
+                Hora_Fin=hora_fin,
+                Tipo=tipo,
+                Descripcion=descripcion
+            )
+            
+            session.add(nuevo_horario)
+            await session.commit()
+            await session.refresh(nuevo_horario)
+            return nuevo_horario
+    
+    async def get_horarios_coordinador(self, usuario_id: UUID):
+        """Obtener todos los horarios de un coordinador"""
+        async with self._async_session_maker() as session:
+            result = await session.execute(
+                select(HorarioCoordinadorORM)
+                .where(HorarioCoordinadorORM.Usuario_Id == usuario_id)
+                .order_by(HorarioCoordinadorORM.Dia_Semana, HorarioCoordinadorORM.Hora_Inicio)
+            )
+            horarios = result.scalars().all()
+            return horarios
+    
+    async def update_horario_coordinador(self, horario_id: UUID, dia_semana: int = None,
+                                        hora_inicio: time = None, hora_fin: time = None,
+                                        tipo: str = None, descripcion: str = None):
+        """Actualizar un bloque de horario"""
+        async with self._async_session_maker() as session:
+            result = await session.execute(
+                select(HorarioCoordinadorORM).where(HorarioCoordinadorORM.Id == horario_id)
+            )
+            horario = result.scalars().first()
+            
+            if not horario:
+                raise ValueError("Horario no encontrado")
+            
+            if dia_semana is not None:
+                horario.Dia_Semana = dia_semana
+            if hora_inicio is not None:
+                horario.Hora_Inicio = hora_inicio
+            if hora_fin is not None:
+                horario.Hora_Fin = hora_fin
+            if tipo is not None:
+                horario.Tipo = tipo
+            if descripcion is not None:
+                horario.Descripcion = descripcion
+            
+            await session.commit()
+            await session.refresh(horario)
+            return horario
+    
+    async def delete_horario_coordinador(self, horario_id: UUID):
+        """Eliminar un bloque de horario"""
+        async with self._async_session_maker() as session:
+            result = await session.execute(
+                select(HorarioCoordinadorORM).where(HorarioCoordinadorORM.Id == horario_id)
+            )
+            horario = result.scalars().first()
+            
+            if not horario:
+                raise ValueError("Horario no encontrado")
+            
+            await session.delete(horario)
+            await session.commit()
+            return {"message": "Horario eliminado exitosamente"}
+    
+    async def verificar_disponibilidad_coordinador(self, usuario_id: UUID, dia_semana: int, hora: time):
+        """
+        Verificar si un coordinador está disponible en un día y hora específicos.
+        Retorna True si está libre, False si está ocupado.
+        """
+        async with self._async_session_maker() as session:
+            result = await session.execute(
+                select(HorarioCoordinadorORM).where(
+                    HorarioCoordinadorORM.Usuario_Id == usuario_id,
+                    HorarioCoordinadorORM.Dia_Semana == dia_semana,
+                    HorarioCoordinadorORM.Hora_Inicio <= hora,
+                    HorarioCoordinadorORM.Hora_Fin > hora
+                )
+            )
+            horario = result.scalars().first()
+            
+            if not horario:
+                # No hay horario definido para este momento
+                return False
+            
+            # Retornar True solo si el horario es de tipo "libre"
+            return horario.Tipo == "libre"
 
         
 

@@ -155,7 +155,13 @@ export default function UsuariosList() {
     }
   };
 
-  const eliminarUsuario = async (id) => {
+  const eliminarUsuario = async (id, email) => {
+    // Proteger al administrador principal
+    if (email === "minicoopsito7@gmail.com") {
+      showError("No se puede eliminar el administrador principal del sistema");
+      return;
+    }
+
     const confirmed = await showConfirm(
       "¿Eliminar usuario?",
       "Esta acción no se puede deshacer. ¿Estás seguro?"
@@ -240,12 +246,22 @@ export default function UsuariosList() {
                     >
                       Editar
                     </button>
-                    <button
-                      onClick={() => eliminarUsuario(u.Id)}
-                      className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-md text-sm"
-                    >
-                      Eliminar
-                    </button>
+                    {u.Email !== "minicoopsito7@gmail.com" ? (
+                      <button
+                        onClick={() => eliminarUsuario(u.Id, u.Email)}
+                        className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-md text-sm"
+                      >
+                        Eliminar
+                      </button>
+                    ) : (
+                      <button
+                        disabled
+                        className="bg-gray-300 text-gray-500 px-3 py-1 rounded-md text-sm cursor-not-allowed"
+                        title="El administrador principal no puede ser eliminado"
+                      >
+                        🔒 Protegido
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -258,62 +274,66 @@ export default function UsuariosList() {
       {mostrarDetalles && usuarioDetalle && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-gray-800">Detalles del Usuario</h3>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-bold text-gray-800">
+                👤 Información del Usuario
+              </h3>
               <button
                 onClick={cerrarDetalles}
-                className="text-gray-500 hover:text-gray-700 text-2xl"
+                className="text-gray-500 hover:text-gray-700 text-3xl font-bold"
               >
                 ×
               </button>
             </div>
             
-            <div className="space-y-3">
-              <div className="border-b pb-2">
-                <p className="text-sm text-gray-500">ID</p>
-                <p className="font-medium">{usuarioDetalle.Id}</p>
+            <div className="space-y-4">
+              {/* Nombre Completo */}
+              <div className="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">
+                <p className="text-sm font-semibold text-blue-800 mb-1">📋 Nombre Completo</p>
+                <p className="text-lg font-bold text-gray-800">
+                  {usuarioDetalle.Nombre} {usuarioDetalle.Apellido_Paterno} {usuarioDetalle.Apellido_Materno}
+                </p>
               </div>
               
-              <div className="border-b pb-2">
-                <p className="text-sm text-gray-500">Nombre</p>
-                <p className="font-medium">{usuarioDetalle.Nombre}</p>
+              {/* Email */}
+              <div className="bg-green-50 rounded-lg p-4 border-l-4 border-green-500">
+                <p className="text-sm font-semibold text-green-800 mb-1">📧 Correo Electrónico</p>
+                <p className="text-lg font-medium text-gray-800">{usuarioDetalle.Email}</p>
+                {usuarioDetalle.Email === "minicoopsito7@gmail.com" && (
+                  <p className="text-xs text-green-700 mt-1">🔒 Administrador Principal del Sistema</p>
+                )}
               </div>
               
-              <div className="border-b pb-2">
-                <p className="text-sm text-gray-500">Apellido Paterno</p>
-                <p className="font-medium">{usuarioDetalle.Apellido_Paterno}</p>
+              {/* Rol */}
+              <div className="bg-purple-50 rounded-lg p-4 border-l-4 border-purple-500">
+                <p className="text-sm font-semibold text-purple-800 mb-1">🎭 Rol en el Sistema</p>
+                <p className="text-lg font-medium text-gray-800">
+                  {usuarioDetalle.Rol === "admin_sistema" && "🔐 Administrador del Sistema"}
+                  {usuarioDetalle.Rol === "admin_escuela" && "👨‍🏫 Coordinador de Escuela"}
+                  {usuarioDetalle.Rol === "vigilancia" && "🛡️ Personal de Vigilancia"}
+                  {usuarioDetalle.Rol === "admin_universitario" && "👨‍💼 Administrador Universitario"}
+                </p>
               </div>
               
-              <div className="border-b pb-2">
-                <p className="text-sm text-gray-500">Apellido Materno</p>
-                <p className="font-medium">{usuarioDetalle.Apellido_Materno}</p>
+              {/* Área */}
+              <div className="bg-orange-50 rounded-lg p-4 border-l-4 border-orange-500">
+                <p className="text-sm font-semibold text-orange-800 mb-1">🏢 Área de Trabajo</p>
+                <p className="text-lg font-medium text-gray-800">{usuarioDetalle.Area}</p>
               </div>
-              
-              <div className="border-b pb-2">
-                <p className="text-sm text-gray-500">Email</p>
-                <p className="font-medium">{usuarioDetalle.Email}</p>
-              </div>
-              
-              <div className="border-b pb-2">
-                <p className="text-sm text-gray-500">Rol</p>
-                <p className="font-medium">{usuarioDetalle.Rol}</p>
-              </div>
-              
-              <div className="border-b pb-2">
-                <p className="text-sm text-gray-500">Rol Escuela</p>
-                <p className="font-medium">{usuarioDetalle.Rol_Escuela}</p>
-              </div>
-              
-              <div className="border-b pb-2">
-                <p className="text-sm text-gray-500">Área</p>
-                <p className="font-medium">{usuarioDetalle.Area}</p>
-              </div>
+
+              {/* Escuela (solo si aplica) */}
+              {usuarioDetalle.Rol_Escuela && usuarioDetalle.Rol_Escuela !== "" && (
+                <div className="bg-indigo-50 rounded-lg p-4 border-l-4 border-indigo-500">
+                  <p className="text-sm font-semibold text-indigo-800 mb-1">🎓 Escuela Asignada</p>
+                  <p className="text-lg font-medium text-gray-800">{usuarioDetalle.Rol_Escuela}</p>
+                </div>
+              )}
             </div>
 
-            <div className="mt-6 flex justify-end">
+            <div className="mt-6 flex justify-end gap-3">
               <button
                 onClick={cerrarDetalles}
-                className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md"
+                className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-md font-medium transition-colors"
               >
                 Cerrar
               </button>

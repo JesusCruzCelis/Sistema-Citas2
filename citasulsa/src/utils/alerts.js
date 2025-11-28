@@ -106,7 +106,6 @@ export const showLoading = (message = 'Procesando...') => {
     title: message,
     allowOutsideClick: false,
     allowEscapeKey: false,
-    allowEnterKey: false,
     didOpen: () => {
       Swal.showLoading();
     },

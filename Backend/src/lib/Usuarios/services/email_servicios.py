@@ -458,3 +458,131 @@ class EmailService:
             print(f"❌ Error al enviar email de reagendado: {str(e)}")
             return False
 
+    async def send_cancellation_email(
+        self,
+        destinatario_email: str,
+        nombre_visitante: str,
+        apellido_paterno: str,
+        apellido_materno: str,
+        nombre_usuario: str,
+        fecha: date,
+        hora: time,
+        area: str
+    ):
+        """
+        Envía un correo notificando la cancelación de una cita.
+        """
+        try:
+            mensaje = MIMEMultipart("alternative")
+            mensaje["Subject"] = "❌ Cancelación de Cita - Sistema de Visitas"
+            mensaje["From"] = self.user
+            mensaje["To"] = destinatario_email
+
+            fecha_formateada = fecha.strftime("%d/%m/%Y")
+            hora_formateada = hora.strftime("%H:%M")
+
+            html_content = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body {{
+                        font-family: Arial, sans-serif;
+                        line-height: 1.6;
+                        color: #333;
+                    }}
+                    .container {{
+                        max-width: 600px;
+                        margin: 0 auto;
+                        padding: 20px;
+                        background-color: #f9f9f9;
+                        border-radius: 10px;
+                    }}
+                    .header {{
+                        background-color: #dc2626;
+                        color: white;
+                        padding: 20px;
+                        text-align: center;
+                        border-radius: 10px 10px 0 0;
+                    }}
+                    .content {{
+                        background-color: white;
+                        padding: 30px;
+                        border-radius: 0 0 10px 10px;
+                    }}
+                    .info-box {{
+                        background-color: #fef2f2;
+                        border-left: 4px solid #dc2626;
+                        padding: 15px;
+                        margin: 20px 0;
+                    }}
+                    .info-item {{
+                        margin: 10px 0;
+                    }}
+                    .label {{
+                        font-weight: bold;
+                        color: #dc2626;
+                    }}
+                    .footer {{
+                        text-align: center;
+                        margin-top: 20px;
+                        color: #666;
+                        font-size: 12px;
+                    }}
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1>❌ Cita Cancelada</h1>
+                    </div>
+                    <div class="content">
+                        <p>Estimado/a <strong>{nombre_visitante} {apellido_paterno} {apellido_materno}</strong>,</p>
+                        
+                        <p>Le informamos que su cita ha sido <strong>cancelada</strong>.</p>
+                        
+                        <div class="info-box">
+                            <h3 style="color: #dc2626; margin-top: 0;">📋 Detalles de la cita cancelada:</h3>
+                            <div class="info-item">
+                                <span class="label">👤 Persona/Área a visitar:</span> {nombre_usuario}
+                            </div>
+                            <div class="info-item">
+                                <span class="label">📅 Fecha:</span> {fecha_formateada}
+                            </div>
+                            <div class="info-item">
+                                <span class="label">🕐 Hora:</span> {hora_formateada}
+                            </div>
+                            <div class="info-item">
+                                <span class="label">🏢 Área:</span> {area}
+                            </div>
+                        </div>
+                        
+                        <p>Si desea agendar una nueva cita, puede hacerlo a través de nuestro sistema.</p>
+                        
+                        <p>Si tiene alguna pregunta o necesita más información, no dude en contactarnos.</p>
+                        
+                        <div class="footer">
+                            <p>Este es un correo automático, por favor no responda a este mensaje.</p>
+                            <p>Sistema de Gestión de Citas - Universidad La Salle Oaxaca</p>
+                        </div>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """
+
+            parte_html = MIMEText(html_content, "html")
+            mensaje.attach(parte_html)
+
+            with smtplib.SMTP(self.host, self.port) as server:
+                server.starttls()
+                server.login(self.user, self.password)
+                server.send_message(mensaje)
+
+            print(f"✅ Email de cancelación enviado correctamente a {destinatario_email}")
+            return True
+
+        except Exception as e:
+            print(f"❌ Error al enviar email de cancelación: {str(e)}")
+            return False
+
